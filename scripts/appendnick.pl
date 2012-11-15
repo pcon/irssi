@@ -6,12 +6,12 @@ use Data::Dumper;
 
 $VERSION = '0.1';
 %IRSSI = (
-	name			=> 'appendnick',
-	authors		=> 'Patrick Connelly',
-	contact		=> 'patrick@deadlypenguin.com',
-	url			=> 'http://pcon.github.com',
-	license		=> 'GPLv2',
-	description	=> 'appends your nick with |<text> and then removes it'
+	name        => 'appendnick',
+	authors     => 'Patrick Connelly',
+	contact     => 'patrick@deadlypenguin.com',
+	url         => 'http://pcon.github.com',
+	license     => 'GPLv2',
+	description => 'appends your nick with |<text> and then removes it'
 );
 
 Irssi::settings_add_str('addnick', 'nick_seperator', '|');
