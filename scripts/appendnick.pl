@@ -4,14 +4,14 @@ use vars qw ($VERSION %IRSSI);
 use Irssi;
 use Data::Dumper;
 
-$VERSION = '0.1';
+$VERSION = '1.0';
 %IRSSI = (
-	name        => 'appendnick',
-	authors     => 'Patrick Connelly',
-	contact     => 'patrick@deadlypenguin.com',
-	url         => 'http://pcon.github.com',
-	license     => 'GPLv2',
-	description => 'appends your nick with |<text> and then removes it'
+	name			=> 'appendnick',
+	authors		=> 'Patrick Connelly',
+	contact		=> 'patrick@deadlypenguin.com',
+	url			=> 'http://pcon.github.com',
+	license		=> 'GPLv2',
+	description	=> 'appends your nick with |<text> and then removes it'
 );
 
 Irssi::settings_add_str('addnick', 'nick_seperator', '|');
@@ -20,12 +20,11 @@ Irssi::settings_add_bool('addnick', 'set_away', 0);
 sub show_help() {
 	my $help = $IRSSI{name}." ".$VERSION."
 Settings you can change with /SET
-	nick_seperator:	The seperator for the nick
+   nick_seperator: The seperator for the nick
 ";
 
 	print CLIENTCRAP $help;
 }
-
 
 sub appendNick {
 	my $NICK_SEPERATOR = Irssi::settings_get_str('nick_seperator');
@@ -43,13 +42,15 @@ sub appendNick {
 	}
 
 	foreach my $server (Irssi::servers) {
-		my $current_nick = $server->{'wanted_nick'};
-		my $new_nick = $current_nick . $NICK_SEPERATOR . $nick_part;
+		if ($server->{'tag'} ne "im") {
+			my $current_nick = $server->{'wanted_nick'};
+			my $new_nick = $current_nick . $NICK_SEPERATOR . $nick_part;
 
-		$server->command("NICK $new_nick");
+			$server->command("NICK $new_nick");
 
-		if ($away_msg ne undef) {
-			$server->command("AWAY $away_msg");
+			if ($away_msg ne undef) {
+				$server->command("AWAY -one $away_msg");
+			}
 		}
 	}
 }
@@ -73,3 +74,4 @@ sub revertNick {
 
 Irssi::command_bind("appendnick", "appendNick");
 Irssi::command_bind("revertnick", "revertNick");
+Irssi::command_bind("help", "show_help");
