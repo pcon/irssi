@@ -3,7 +3,7 @@ use vars qw($VERSION %IRSSI);
 
 use Irssi;
 use JSON;
-use Queue::Beanstalk;
+use Beanstalk::Client;
 $VERSION = '1.0.0';
 %IRSSI = (
 	authors     => 'Patrick Connelly',
@@ -16,17 +16,9 @@ $VERSION = '1.0.0';
 );
 
 Irssi::settings_add_str('beanstalkNotify', 'beanstalk_server', 'beanstalk.example.com');
-Irssi::settings_add_str('beanstalkNotify', 'beanstalk_port', '8888');
-
-sub show_help() {
-	my $help = $IRSSI{name}." ".$VERSION."
-Settings you can change with /SET
-	beanstalk_server:		The server to send notifications to
-	beanstalk_port:		The port to the beanstalk server
-";
-
-	print CLIENTCRAP $help;
-}
+Irssi::settings_add_str('beanstalkNotify', 'beanstalk_port', '11300');
+Irssi::settings_add_str('beanstalkNotify', 'beanstalk_here_tube', 'irc_here');
+Irssi::settings_add_str('beanstalkNotify', 'beanstalk_away_tube', 'irc_away');
 
 #--------------------------------------------------------------------
 # In parts based on fnotify.pl 0.0.4 by Thorsten Leemhuis
@@ -53,9 +45,7 @@ sub priv_msg {
 	if ($hour < 9) { $hour = "0".$hour;}
 	my $date = "$weekDays[$dayofweek]-$hour:$min";
 
-	my $title = $nick;
-	my $message = $date."\n".$msg;
-	send_notify($title, $message);
+	send_notify($nick, $server->{chatnet}, $msg, $date, $server->{usermode_away});
 }
 
 #--------------------------------------------------------------------
@@ -63,18 +53,16 @@ sub priv_msg {
 #--------------------------------------------------------------------
 
 sub hilight {
-	my ($dest, $text, $stripped) = @_;
-	if ($dest->{level} & MSGLEVEL_HILIGHT) {
-		my @weekDays = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
-		my ($sec,$min,$hour,$mday,$month,$yearoff,$dayofweek,$dayofyear,$daylight) = localtime();
-		if ($min < 9) { $min = "0".$min;}
-		if ($hour < 9) { $hour = "0".$hour;}
-		my $date = "$weekDays[$dayofweek]-$hour:$min";
+    my ($dest, $text, $stripped) = @_;
+    if ($dest->{level} & MSGLEVEL_HILIGHT) {
+	my @weekDays = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
+	my ($sec,$min,$hour,$mday,$month,$yearoff,$dayofweek,$dayofyear,$daylight) = localtime();
+	if ($min < 9) { $min = "0".$min;}
+	if ($hour < 9) { $hour = "0".$hour;}
+	my $date = "$weekDays[$dayofweek]-$hour:$min";
 
-		my $title = $dest->{target};
-		my $message = $date."\n".$stripped;
-		send_notify($title, $message);
-	}
+	send_notify($dest->{target}, $dest->{server}->{chatnet}, $stripped, $date, $dest->{server}->{usermode_away});
+    }
 }
 
 #--------------------------------------------------------------------
@@ -82,27 +70,36 @@ sub hilight {
 #--------------------------------------------------------------------
 
 sub send_notify {
-	my ($title, $message) = @_;
-	utf8::decode($title);
+	my ($channel, $server, $message, $date, $away) = @_;
+	utf8::decode($channel);
+	utf8::decode($server);
 	utf8::decode($message);
 
 	my $BEANSTALK_SERVER = Irssi::settings_get_str('beanstalk_server');
 	my $BEANSTALK_PORT = Irssi::settings_get_str('beanstalk_port');
+	my $BEANSTALK_HERE_TUBE = Irssi::settings_get_str('beanstalk_here_tube');
+	my $BEANSTALK_AWAY_TUBE = Irssi::settings_get_str('beanstalk_away_tube');
+	my $BEANSTALK_TUBE = ($away == 1) ? $BEANSTALK_AWAY_TUBE : $BEANSTALK_HERE_TUBE;
 
 	my $beanstalk;
 
 	eval {
-		$beanstalk = Queue::Beanstalk->new(
-			'servers' => [ $BEANSTALK_SERVER.':'.$BEANSTALK_PORT ],
-			'connect_timeout' => 2,
-		);
+		$beanstalk = Beanstalk::Client->new({
+			server => $BEANSTALK_SERVER.':'.$BEANSTALK_PORT,
+			connect_timeout => 2,
+			default_tube => $BEANSTALK_TUBE
+		});
 	};
 
-	my %data_hash = ('title' => $title, 'body' => $message);
+	my %data_hash = ('channel' => $channel, 'server' => $server, 'message' => $message, 'date' => $date);
 	my $data = encode_json \%data_hash;
 
 	if (defined($beanstalk)) {
-		$beanstalk->put($data)
+		my $job = $beanstalk->put({
+			data => $data
+		});
+
+		$beanstalk->disconnect;
 	}
 }
 

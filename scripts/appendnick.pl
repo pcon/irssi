@@ -4,7 +4,7 @@ use vars qw ($VERSION %IRSSI);
 use Irssi;
 use Data::Dumper;
 
-$VERSION = '1.0';
+$VERSION = '1.0.1';
 %IRSSI = (
 	name			=> 'appendnick',
 	authors		=> 'Patrick Connelly',
@@ -16,15 +16,6 @@ $VERSION = '1.0';
 
 Irssi::settings_add_str('addnick', 'nick_seperator', '|');
 Irssi::settings_add_bool('addnick', 'set_away', 0);
-
-sub show_help() {
-	my $help = $IRSSI{name}." ".$VERSION."
-Settings you can change with /SET
-   nick_seperator: The seperator for the nick
-";
-
-	print CLIENTCRAP $help;
-}
 
 sub appendNick {
 	my $NICK_SEPERATOR = Irssi::settings_get_str('nick_seperator');
@@ -74,4 +65,3 @@ sub revertNick {
 
 Irssi::command_bind("appendnick", "appendNick");
 Irssi::command_bind("revertnick", "revertNick");
-Irssi::command_bind("help", "show_help");

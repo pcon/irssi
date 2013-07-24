@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+#
+# by pcon
 
 use strict;
 use IO::Socket;
@@ -7,7 +9,7 @@ use LWP::UserAgent;
 use vars qw($VERSION %IRSSI);
 
 use Irssi qw(command_bind active_win);
-$VERSION = '1.1';
+$VERSION = '1.1.1';
 %IRSSI = (
 	authors	=> 'pcon',
 	contact	=> 'patrick@deadlypenguin.com',
@@ -18,11 +20,6 @@ $VERSION = '1.1';
 );
 
 Irssi::settings_add_str('hurl', 'hurl_url', '');
-
-Irssi::command_bind('help', sub {
-	Irssi::print("Shortens a URL via hURL", MSGLEVEL_CLIENTCRAP);
-	Irssi::signal_stop;
-});
 
 command_bind(
 	hurl => sub {
